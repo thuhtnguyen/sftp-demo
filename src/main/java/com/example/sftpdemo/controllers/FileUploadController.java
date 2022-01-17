@@ -11,13 +11,18 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/api/file")
 public class FileUploadController {
+    private static final String REMOTE_HOST = "";
+    private static final String USERNAME = "";
+    private static final String PASSWORD = "";
+    private static final int PORT = 22;
+
     @Autowired
     private FileUploadService fileUploadService;
 
     @GetMapping(path = "/upload")
     public String upload() {
         try {
-            fileUploadService.uploadFile();
+            fileUploadService.uploadFile(REMOTE_HOST, PORT, USERNAME, PASSWORD, "", "","");
         } catch (Exception e) {
             log.error("Error while uploading file to SFTP", e);
             return "Internal server error";
