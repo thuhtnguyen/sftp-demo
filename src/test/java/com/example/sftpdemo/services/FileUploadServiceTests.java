@@ -1,4 +1,4 @@
-package com.example.sftpdemo;
+package com.example.sftpdemo.services;
 
 import com.example.sftpdemo.services.FileUploadService;
 import lombok.extern.slf4j.Slf4j;
