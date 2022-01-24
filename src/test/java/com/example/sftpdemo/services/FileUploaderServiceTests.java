@@ -1,6 +1,6 @@
 package com.example.sftpdemo.services;
 
-import com.example.sftpdemo.services.FileUploadService;
+import com.example.sftpdemo.utils.RetryHelper;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -9,7 +9,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 
 @Slf4j
 @SpringBootTest
-public class FileUploadServiceTests {
+public class FileUploaderServiceTests {
     @Value("${SFTP_HOST}")
     private String sftpHost;
 
@@ -34,16 +34,17 @@ public class FileUploadServiceTests {
     @Value("${KNOWN_HOST}")
     private String knownHost;
 
+    @Value("${MAX_RETRIES}")
+    private int maxRetries;
+
     @Autowired
-    private FileUploadService fileUploadService;
+    private FileUploaderService fileUploaderService;
+
 
     @Test
     public void uploadFile() {
-        try {
-            fileUploadService.uploadFile(sftpHost, sftpPort, sftpUsername, sftpPassword, fileToUpload,
-                    sftpUploadPath + destFileName, knownHost);
-        } catch (Exception e) {
-            log.error("Error while uploading file to sftp server", e);
-        }
+        RetryHelper<Object> retryHelper = new RetryHelper<>(maxRetries);
+        retryHelper.run(() -> fileUploaderService.uploadFile(sftpHost, sftpPort, sftpUsername, sftpPassword, fileToUpload,
+                sftpUploadPath + destFileName, knownHost));
     }
 }
