@@ -6,8 +6,8 @@ import com.jcraft.jsch.JSchException;
 import com.jcraft.jsch.Session;
 import com.jcraft.jsch.SftpException;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
+import org.springframework.retry.annotation.Backoff;
+import org.springframework.retry.annotation.Recover;
 import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Service;
 
@@ -51,7 +51,7 @@ public class FileUploaderService {
         return (ChannelSftp) jschSession.openChannel("sftp");
     }
 
-    @Retryable(value = Exception.class, maxAttemptsExpression = "${MAX_RETRIES}")
+    @Retryable(value = Exception.class, maxAttemptsExpression = "${MAX_RETRIES}", backoff = @Backoff(delay = 1000L))
     public boolean uploadFile(String host, int port, String username, String password, String fileToUpload,
                            String destinationFile, String knownHost) throws JSchException, SftpException {
         log.info("Attempting at {} time(s)", ++retryCount);
@@ -64,5 +64,8 @@ public class FileUploaderService {
         return true;
     }
 
-
+    @Recover
+    public void recover() {
+        log.info("All attempt has been failed, start recovering!");
+    }
 }
