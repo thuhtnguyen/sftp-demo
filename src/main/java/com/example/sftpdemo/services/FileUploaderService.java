@@ -76,9 +76,9 @@ public class FileUploaderService {
                 return uploadFile(host, port, username, password, fileToUpload, destinationFile, knownHost);
             } catch (Exception e) {
                 attemptCount++;
-                log.info("Failed to upload file on {} attempt(s)", attemptCount);
+                log.error("Failed to upload file on {} attempt(s)", attemptCount);
                 if (attemptCount >= maxRetries) {
-                    log.info("Max retries exceeded");
+                    log.error("Max retries exceeded");
                     throw e;
                 }
             }
