@@ -35,7 +35,7 @@ public class FileUploaderServiceTests {
     private String knownHost;
 
     @Value("${MAX_RETRIES}")
-    private String maxRetries;
+    private int maxRetries;
 
     @Autowired
     private FileUploaderService fileUploaderService;
@@ -44,7 +44,9 @@ public class FileUploaderServiceTests {
     public void uploadFile() {
         boolean result = false;
         try {
-            result = fileUploaderService.uploadFile(sftpHost, sftpPort, sftpUsername, sftpPassword, fileToUpload,
+//            result = fileUploaderService.uploadFile(sftpHost, sftpPort, sftpUsername, sftpPassword, fileToUpload,
+//                            sftpUploadPath + destFileName, knownHost);
+            result = fileUploaderService.uploadFileWithRetry(sftpHost, sftpPort, sftpUsername, sftpPassword, fileToUpload,
                             sftpUploadPath + destFileName, knownHost);
         } catch (Exception e) {
             log.error("Error while uploading file to SFTP on all of {} attempt(s)", maxRetries, e);

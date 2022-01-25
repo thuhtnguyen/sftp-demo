@@ -6,6 +6,7 @@ import com.jcraft.jsch.JSchException;
 import com.jcraft.jsch.Session;
 import com.jcraft.jsch.SftpException;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.retry.annotation.Backoff;
 import org.springframework.retry.annotation.Recover;
 import org.springframework.retry.annotation.Retryable;
@@ -25,6 +26,9 @@ public class FileUploaderService {
     private static final int SESSION_TIMEOUT = 100000;
     private static final int CHANNEL_TIMEOUT = 100000;
     private int retryCount = 0;
+
+    @Value("${MAX_RETRIES}")
+    private int maxRetries;
 
     private ChannelSftp setupJschPasswordAuthentication(String host, int port, String username, String password, String knownHost)
             throws JSchException {
@@ -51,7 +55,7 @@ public class FileUploaderService {
         return (ChannelSftp) jschSession.openChannel("sftp");
     }
 
-    @Retryable(value = Exception.class, maxAttemptsExpression = "${MAX_RETRIES}", backoff = @Backoff(delay = 1000L))
+//    @Retryable(value = Exception.class, maxAttemptsExpression = "${MAX_RETRIES}", backoff = @Backoff(delay = 1000L))
     public boolean uploadFile(String host, int port, String username, String password, String fileToUpload,
                            String destinationFile, String knownHost) throws JSchException, SftpException {
         log.info("Attempting at {} time(s)", ++retryCount);
@@ -64,8 +68,21 @@ public class FileUploaderService {
         return true;
     }
 
-    @Recover
-    public void recover() {
-        log.info("All attempt has been failed, start recovering!");
+    public boolean uploadFileWithRetry(String host, int port, String username, String password, String fileToUpload,
+                              String destinationFile, String knownHost) throws JSchException, SftpException {
+        int attemptCount = 0;
+        while (attemptCount < maxRetries) {
+            try {
+                return uploadFile(host, port, username, password, fileToUpload, destinationFile, knownHost);
+            } catch (Exception e) {
+                attemptCount++;
+                log.info("Failed to upload file on {} attempt(s)", attemptCount);
+                if (attemptCount >= maxRetries) {
+                    log.info("Max retries exceeded");
+                    throw e;
+                }
+            }
+        }
+        return false;
     }
 }
