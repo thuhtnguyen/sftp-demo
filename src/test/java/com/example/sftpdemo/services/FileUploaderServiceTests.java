@@ -1,11 +1,16 @@
 package com.example.sftpdemo.services;
 
 import com.example.sftpdemo.utils.RetryHelper;
+import com.jcraft.jsch.JSchException;
+import com.jcraft.jsch.SftpException;
 import lombok.extern.slf4j.Slf4j;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
+
+import java.util.function.Supplier;
 
 @Slf4j
 @SpringBootTest
@@ -35,16 +40,20 @@ public class FileUploaderServiceTests {
     private String knownHost;
 
     @Value("${MAX_RETRIES}")
-    private int maxRetries;
+    private String maxRetries;
 
     @Autowired
     private FileUploaderService fileUploaderService;
 
-
     @Test
     public void uploadFile() {
-        RetryHelper<Object> retryHelper = new RetryHelper<>(maxRetries);
-        retryHelper.run(() -> fileUploaderService.uploadFile(sftpHost, sftpPort, sftpUsername, sftpPassword, fileToUpload,
-                sftpUploadPath + destFileName, knownHost));
+        boolean result = false;
+        try {
+            result = fileUploaderService.uploadFile(sftpHost, sftpPort, sftpUsername, sftpPassword, fileToUpload,
+                            sftpUploadPath + destFileName, knownHost);
+        } catch (Exception e) {
+            log.error("Error while uploading file to SFTP on all of {} attempt(s)", maxRetries, e);
+        }
+        Assertions.assertTrue(result);
     }
 }

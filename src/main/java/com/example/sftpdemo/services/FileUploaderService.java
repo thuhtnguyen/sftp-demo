@@ -6,6 +6,9 @@ import com.jcraft.jsch.JSchException;
 import com.jcraft.jsch.Session;
 import com.jcraft.jsch.SftpException;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Service;
 
 import java.io.ByteArrayInputStream;
@@ -21,6 +24,7 @@ public class FileUploaderService {
     private static final String SSH_PRIVATE_KEY_FILE = "";
     private static final int SESSION_TIMEOUT = 100000;
     private static final int CHANNEL_TIMEOUT = 100000;
+    private int retryCount = 0;
 
     private ChannelSftp setupJschPasswordAuthentication(String host, int port, String username, String password, String knownHost)
             throws JSchException {
@@ -47,19 +51,18 @@ public class FileUploaderService {
         return (ChannelSftp) jschSession.openChannel("sftp");
     }
 
+    @Retryable(value = Exception.class, maxAttemptsExpression = "${MAX_RETRIES}")
     public boolean uploadFile(String host, int port, String username, String password, String fileToUpload,
-                           String destinationFile, String knownHost) {
-        try {
-            ChannelSftp channelSftp = setupJschPasswordAuthentication(host, port, username, password, knownHost); // Using username/password
+                           String destinationFile, String knownHost) throws JSchException, SftpException {
+        log.info("Attempting at {} time(s)", ++retryCount);
+        ChannelSftp channelSftp = setupJschPasswordAuthentication(host, port, username, password, knownHost); // Using username/password
 //        ChannelSftp channelSftp = setupJschSSHAuthentication(); // Using SSH key
-            channelSftp.connect(CHANNEL_TIMEOUT);
+        channelSftp.connect(CHANNEL_TIMEOUT);
 
-            channelSftp.put(fileToUpload, destinationFile);
-            channelSftp.exit();
-            return true;
-        } catch (Exception e) {
-            log.error("Error while uploading file to sftp server", e);
-            return false;
-        }
+        channelSftp.put(fileToUpload, destinationFile);
+        channelSftp.exit();
+        return true;
     }
+
+
 }
